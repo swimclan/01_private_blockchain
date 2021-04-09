@@ -130,7 +130,12 @@ class Blockchain {
         return reject("Star submission rejected, invalid message");
       }
       const newBlock = new BlockClass.Block({ star, owner: address });
-      self._addBlock(newBlock);
+
+      await self._addBlock(newBlock);
+      const errors = self.validateChain();
+      if (errors.length) {
+        return reject(errora);
+      }
       return resolve(newBlock);
     });
   }
@@ -205,19 +210,18 @@ class Blockchain {
     let self = this;
     let errorLog = [];
     return new Promise(async (resolve, reject) => {
-      const errors = [];
-      for (const i = 0; i < self.chain.length; i++) {
+      for (let i = 0; i < self.chain.length; i++) {
         const block = self.chain[i];
         if (!(await block.validate())) {
-          errors.push(`Invalid hash in block at height ${block.height}`);
+          errorLog.push(`Invalid hash in block at height ${block.height}`);
         }
-        if (i > 0 && block.hash !== self.chain[i - 1].previousBlockHash) {
-          errors.push(
+        if (i > 0 && block.previousBlockHash !== self.chain[i - 1].hash) {
+          errorLog.push(
             `Hash mismatch to previous hash at block at height ${block.height}`
           );
         }
       }
-      resolve(errors);
+      resolve(errorLog);
     });
   }
 }
